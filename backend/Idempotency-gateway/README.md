@@ -56,6 +56,12 @@ assets/architectureDiagram.png
         Headers: X-Cache-Hit: true
 
       Behavior: Returned instantly without reprocessing the payment.
-      
+      Error Response (Same Key, Different Request Body)
+          {
+            "detail": "Idempotency key already used for a different request body."
+          }
+
+          Status Code: 409 Conflict
+       
 
 

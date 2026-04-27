@@ -16,6 +16,7 @@ class PaymentRequest(BaseModel):
 def home():
     return {"message": "Idempotency Gateway Running Successfully"}
 
+# Payment endpoint
 @app.post("/process-payment")
 async def process_payment(
     payment: PaymentRequest,
@@ -24,23 +25,39 @@ async def process_payment(
     body = payment.dict()
     existing = store.get(idempotency_key)
 
-    # Key already exists → return cached response
+    # Key already exists
     if existing:
+
+        # Same key + different request body → reject
+        if existing["request_body"] != body:
+            raise HTTPException(
+                status_code=409,
+                detail="Idempotency key already used for a different request body."
+            )
+
+        # Same request → return cached response
         return JSONResponse(
             content=existing["response"],
             headers={"X-Cache-Hit": "true"}
         )
 
-    # First request
+    # First request → simulate processing
     await asyncio.sleep(2)
 
     response_data = {
         "message": f"Charged {payment.amount} {payment.currency}"
     }
 
+    # Save result
     store[idempotency_key] = {
         "request_body": body,
         "response": response_data
     }
 
+    return JSONResponse(
+        status_code=201,
+        content=response_data
+    )
     return JSONResponse(status_code=201, content=response_data)
+
+       
